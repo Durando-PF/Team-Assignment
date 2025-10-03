@@ -8,8 +8,7 @@ output:
   word_document: default
   pdf_document: default
 ---
-#test change
-#test change 2 
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse) # Don't forget to run "install.packages('tidyverse')"
