@@ -1,0 +1,296 @@
+---
+title: "Group Assignment 1"
+author: "MSQM: HA Team 11- Grace Kemp, Lauren Leonard, Ankita Upadhye, Issace Kisner,
+  Patrick Flynn"
+date: "`r Sys.Date()`"
+output:
+  html_document: default
+  word_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse) # Don't forget to run "install.packages('tidyverse')"
+library(readxl) # Note: if this is not installed, remember you can install new packages using install.packages('readxl')
+library(dplyr)
+##install.packages("janitor")
+
+```
+
+# World Happiness
+
+The World Happiness Report is a landmark survey of the state of global happiness that ranks 156 countries by how happy their citizens perceive themselves to be.
+
+More Information: <https://worldhappiness.report/ed/2025/> Central to this survey is the "Life Evaluation" question. Life evaluation was measured by the individual answers to the *Cantril ladder question*: “Please imagine a ladder, with steps numbered from 0 at the bottom to 10 at the top. The top of the ladder represents the best possible life for you and the bottom of the ladder represents the worst possible life for you. On which step of the ladder would you say you personally feel you stand at this time?”
+
+\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_
+
+## Reading and Tidying the Data
+
+**Read in all the data provided to for the years from 2014 - 2024 from the provided excel spreadsheet.**
+
+a)  Ensure that the columns of this data frame comply with tidyverse naming conventions.
+
+b)  Remove columns that we will not be using for the following analysis: *upperwhisker*, *lowerwhisker*, *Dystopia + Residual*
+
+c)  Check your data for completeness. Count up the number of rows for each country and remove countries that are incomplete (i.e. missing one or more years). Which countries were removed (if any) and how might this impact your analysis?
+
+d)  Order the dataset by country and year in ascending order.
+
+### Code
+
+a)  **Ensure that the columns of this data frame comply with tidyverse naming conventions.**
+
+b)  **Remove columns that we will not be using for the following analysis: *upperwhisker*, *lowerwhisker*, *Dystopia + Residual***
+
+```{r}
+# a)  Ensure that the columns of this data frame comply with tidyverse naming conventions.
+# b)  Remove columns that we will not be using for the following analysis: *upperwhisker*, *lowerwhisker*, *Dystopia + Residual*
+  
+# Reading & Tidying the data
+happiness = read_xlsx('Happiness_2014-2024.xlsx') # Read in excel file
+class(happiness) # Confirm type is tibble/dataframe
+
+cat("\nOld Column Names:\n") # Print header message for old names
+names(happiness)# Display the original column names
+
+# We're using the janitor package which is specifically designed for data cleaning tasks like this. While it's not in our coding companion, it's widely used in the tidyverse community for cleaning messy column names automatically. It handles all the common issues: converting to lowercase, replacing spaces with underscores, removing special characters, etc. This is much simpler and more reliable than writing multiple gsub commands ourselves. We display column names before and after janitor is used to confirm that it has the intended affect.
+
+# Install if needed: install.packages('janitor')
+library(janitor)
+
+happiness <- happiness %>% 
+  clean_names() |> # Function from janitor to follow tidyverse conventions
+  mutate(across(where(is.character),~ str_replace_all(.x, "[^\x01-\x7F]", ""))) |> # Remove unwanted characters from strings
+  select(-(upperwhisker:dystopia_residual)) # Drop unnecessary columns (all after "upperwhisker")
+
+cat("\nNew Column Names:\n")# Print header message for new names
+names(happiness)
+
+```
+
+c)  **Check your data for completeness. Count up the number of rows for each country and remove countries that are incomplete (i.e. missing one or more years). Which countries were removed (if any) and how might this impact your analysis?**
+
+d)  **Order the dataset by country and year in ascending order.**
+
+```{r}
+# c)  Check your data for completeness. 
+    # Count up the number of rows for each country and remove countries that are incomplete (missing 1+ years). 
+    # Which countries were removed (if any) and how might this impact your analysis?
+# d)  Order the dataset by country and year in ascending order.
+
+unique_years = length(unique(happiness$year)) # Assign variables with number of unique years
+
+
+# Check for duplicate country-year combinations
+dupes = happiness |> 
+  get_dupes(country_name, year)
+
+# If no duplicates, dupes will have 0 rows
+if(nrow(dupes) > 0) {
+  warning("Duplicate country-year combinations found!")
+  print(dupes)
+}
+
+# Create a data frame of removed countries to work with later (simplifies later code)
+removed_countries = happiness |>
+  add_count(country_name, name = "count_observations") |> # Create count variable equal to the count of observations by country_name
+  filter(count_observations!=unique_years) |> # Limit the dataset to where the observation count by country_name is not equal to unique_years
+  select('country_name', 'count_observations') |> # Select only relevant variables
+  arrange(country_name) |> # Arrange in order of ascending country_name
+  distinct(.keep_all = TRUE) # Make dataset distinct
+  
+cat("Number of countries removed:", nrow(removed_countries), "\n") # Print the count of removed countries
+cat("Countries removed:", paste(removed_countries$country_name, collapse = ", "), "\n") # Print the list of removed countries
+
+happiness_non_missing = happiness |>
+  filter(!country_name %in% as.list(removed_countries$country_name)) |> # Remove incomplete countries from dataset
+  arrange(country_name, year) # Arrange in order of ascending country then year
+
+```
+
+#### Insight: 
+
+Our analysis is limited because we're only looking at countries that could consistently report their happiness data. Countries with problems (like wars, economic issues) might have been excluded, so our results might not show the real global picture of happiness.
+
+Removing incomplete countries from the dataframe will reduce the sample size. A decrease in sample size increases the standard error, which generally means less confidence that our results describes the larger population.
+
+## \_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_
+
+# Questions
+
+## 1. What are the happiest years across all countries?
+
+a)  Find the happiest year for each country.\
+    Then, count up the occurrence of these happiest years to see how many countries share the same happiest years.\
+    What are the most common happiest years?
+
+b)  How does this align with average happiness by year across all countries in the dataset?\
+    What does this tell you about happiness trends overall?
+
+c)  Compare these two lists of years to one another.\
+    Are there any that stand out?
+
+### Code
+
+### 
+
+a)  **Find the happiest year for each country.\
+    Then, count up the occurrence of these happiest years to see how many countries share the same happiest years.\
+    What are the most common happiest years?**
+
+```{r}
+# 1a. Find the happiest year for each country.
+    # Then, count up the occurrence of these happiest years to see how many countries share the same happiest years.
+    # What are the most common happiest years?
+
+happpiest_year_counts = happiness_non_missing |>
+  group_by(country_name) |> # Group rows of data together based on country_name
+  slice_max(ladder_score, n=1) |> # Select the maximum happiness score in each group
+  ungroup() |>
+  count(year, sort = TRUE, name = 'num_countries') # Count up the occurrence of these happiest years; Sort; Rename n column to num_countries
+```
+
+#### Insight: 
+
+2024 appears to have been a globally significant year for happiness, potentially reflecting recovery from global challenges or other positive worldwide factors. Followed by 2014, 2020, 2019, and 2022 for the top 5.
+
+Countries that seemed to be removed are ones from areas of unrest, political disregulation or poor economies. It might be possible that the questions we are asking to gather happiness ratio is skewed and doesn’t reflect a global metric but rather a narrower one. Happiness index is only limited to countries that can conduct survey and report it.
+
+b)  **How does this align with average happiness by year across all countries in the dataset?\
+    What does this tell you about happiness trends overall?**
+
+```{r}
+# 1b. How does this align with average happiness by year across all countries in the dataset?
+    # What does this tell you about happiness trends overall? 
+  
+happpiest_year_average = happiness_non_missing |>
+  group_by(year) |> # Group rows of data together based on year
+  summarize(mean_score = mean(ladder_score)) |> # Find the mean ladder_score per year
+  arrange(desc(mean_score)) # Arrange in order of descending mean_score
+
+```
+
+#### Insight:
+
+The data shows that while individual countries may have had peaks during different periods, 2019-2024 was generally a period of high global happiness, with 2020-2024 showing that many countries were simultaneously experiencing their best years suggesting positive global conditions during this period.
+
+c)  **Compare these two lists of years to one another.\
+    Are there any that stand out?**
+
+```{r}
+# 1c. Compare these two lists of years to one another.
+    # Are there any that stand out?
+  
+compare_happiest = merge(happpiest_year_counts, happpiest_year_average) # Merge datasets to easily compare
+
+compare_happiest
+```
+
+#### Insight:
+
+The data reveals a clear upward trend in global happiness from 2020 to 2024, with 2024 standing out as both the year with the highest average happiness score and the year when the most countries reached their personal peak happiness. This suggests that 2024 was not only a strong year for individual nations but also marked a collective global improvement in well-being, possibly reflecting recovery from global crises, like covid, or broader societal progress.
+
+The data reveals an upward trend in average ladder scores from 2014 to 2024, but the number of countries at different score levels varies across years. This suggests that average happiness scores reflect population-weighted wellbeing rather than simply counting "happy countries." The overall population has become happier over the decade, even as individual country rankings shift over time.
+
+\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_
+
+## 2. Which countries have seen the largest increase in overall happiness?
+
+<!-- -->
+
+a)  Find the 10 countries with the largest *positive* change over the 10 year period (i.e. the largest increase between their earliest and latest observation).
+
+b)  Additionally, which countries experienced the largest year-over-year increase in happiness?
+
+c)  Compare these two lists of countries to one another. Is there overlap between them?
+
+### Code
+
+a)  **Find the 10 countries with the largest *positive* change over the 10 year period (i.e. the largest increase between their earliest and latest observation).**
+
+```{r}
+# 2a. Find the 10 countries with the largest *positive* change over the 10 year period 
+    #(i.e. the largest increase between their earliest and latest observation).
+
+# For this analysis, absolute value increase (not percentage) makes more sense.
+# The scale has fixed endpoints with meaningful intervals.
+# A 1-point increase means the same thing whether you go from 3 to 4 or 7 to 8.
+
+total_increase = happiness_non_missing |>
+  group_by(country_name) |> # Group rows of data together based on country
+  arrange(year) |> # Arrange by ascending year within each group
+  mutate(ten_yr_increase = last(ladder_score) - first(ladder_score)) |> # Calculate the value change from first year to last year
+  arrange(desc(ten_yr_increase)) |> # Arrange in order of descending change
+  select(country_name, ten_yr_increase) |> # Select only relevant variables
+  distinct(.keep_all = TRUE)  # Make dataset distinct
+
+cat("Top 10 Countries With Total Value Increase In Happiness From 2014 to 2024\n")
+
+head(total_increase, 10)
+```
+
+#### Insight:
+
+The countries with the largest improvements tend to be those that started the decade at lower happiness levels, suggesting they experienced significant positive changes in governance, economy, social conditions, or recovery from previous challenges. This demonstrates that happiness can be improved dramatically even over a relatively short 10-year period with the right conditions.
+
+b)  **Additionally, which countries experienced the largest year-over-year increase in happiness?**
+
+```{r}
+# 2b. Additionally, which countries experienced the largest year-over-year increase in happiness?
+
+year_over_year_increase = happiness_non_missing |>
+  arrange(country_name, year) |>  # Arrange in order of ascending country_name and year
+  group_by(country_name) |>  # Group rows of data together based on country_name
+  mutate(last_yr_score = lag(ladder_score), # Get the score from last year
+         yoy_increase = ladder_score - last_yr_score # Calculate the value change from last year to this year
+         ) |>
+  slice_max(yoy_increase, n = 1) |> # Select the max increase for each country
+  select(-rank, -ladder_score, -last_yr_score) |> # Remove the rank column
+  arrange(desc(yoy_increase)) |> # Arrange in order of descending value change
+  ungroup() # Remove grouping for cleaner output
+
+cat("Top 10 Countries With Largest Year-Over-Year Increase\n")
+head(year_over_year_increase, 10)
+
+```
+
+## Insight:
+
+These results show that happiness can change dramatically in a single year, with African countries showing some of the most remarkable single-year improvements. This suggests that specific events, policy changes, or economic improvements can have immediate positive impacts on national happiness levels.
+
+**c. Compare these two lists of countries to one another. Is there overlap between them?**
+
+```{r}
+# 2c. Compare these two lists of countries to one another. Is there overlap between them?
+
+# Get top 10 from each list
+top10_total = head(total_increase, 10)
+top10_yoy = head(year_over_year_increase, 10)
+
+# Find overlap
+overlap = intersect(top10_total$country_name, top10_yoy$country_name)
+
+cat("\nCountries appearing in both top 10 lists:\n")
+if(length(overlap) > 0) {
+  print(overlap)
+  cat(paste("\nThere are", length(overlap), "countries in both lists.\n"))
+} else {
+  cat("No overlap between the two lists.\n")
+}
+
+
+```
+
+```{r}
+
+# Show side-by-side comparison
+# NOTE: NA means this country was not in the top 10 for its respective category (yoy_increase or ten_yr_increase)
+compare_increase = merge(top10_total, top10_yoy, 
+                         by = "country_name", 
+                         suffixes = c("_total", "_yoy"),
+                         all = TRUE) # Use all = TRUE to see countries in either list
+cat("\nSide-by-side comparison:\nThis includes countries from the top 10 lists shown above, not a comprehensive list of all countries")
+compare_increase
+```
